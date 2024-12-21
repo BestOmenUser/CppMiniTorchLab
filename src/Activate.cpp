@@ -928,7 +928,6 @@ void Layer::MaxPooling::Init()
 shape Layer::MaxPooling::ComputeGraph(shape Shape)
 {
 	shape NextShape = Shape;
-	NextShape[1] = this->KernelShape[0];
 	NextShape[2] = (Shape[2] + 2 * HorizontallyPadding - KernelShape[2]) / Stride + 1;
 	NextShape[3] = (Shape[3] + 2 * VerticallyPadding - KernelShape[3]) / Stride + 1;
 	std::cout << "MaxPooling output shape:    MiniTorch.Size([";
@@ -1193,9 +1192,9 @@ DataBlock Activate::BatchNorm::Forward(DataBlock& Data, bool Train)
 		}
 	else {
 		BatchNormOperator::CalculateMean(this->Input.Data, this->Input.shape, this->Mean, this->MeanShape);
-		double a;
-		MatrixOperator::MatrixSum(this->Input.Data, this->Input.shape, a);
-		MatrixOperator::MatrixSum(this->Mean, this->MeanShape, a);
+		//double a;
+		//MatrixOperator::MatrixSum(this->Input.Data, this->Input.shape, a);
+		//MatrixOperator::MatrixSum(this->Mean, this->MeanShape, a);
 		BatchNormOperator::CalculateVariance(this->Input.Data, this->Input.shape,
 			this->Mean, this->MeanShape, this->Variance, this->VarianceShape);
 		BatchNormOperator::CalculateValueHat(this->Input.Data, this->Input.shape, this->Mean, this->MeanShape,

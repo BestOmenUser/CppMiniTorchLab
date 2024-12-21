@@ -6,17 +6,17 @@ namespace MatrixOperator {
 	void Convolution(double* Input, shape InputShape, double* Kernel, shape KernelShape, double* Output, shape OutputShape, size_t stride);
 	void Multiply2D(double* X, shape ShapeX, double* Y, shape ShapeY, double* Z, shape ShapeZ);
 	void SetZero(double* X, shape ShapeX);
-	void Transpose(double* X, shape & ShapeX, double* X_T, shape & ShapeX_T);
-	void SetValue(double* X, shape Shape,double Start);
+	void Transpose(double* X, shape& ShapeX, double* X_T, shape& ShapeX_T);
+	void SetValue(double* X, shape Shape, double Start);
 	void SetNumber(double* X, shape Shape, double Value);
 	void PrintValue(double* X, shape Shape);
-	void MatrixAdd(double* X, shape & ShapeX , double* Y,shape & ShapeY, double* Z, shape & ShapeZ);
-	void MatrixSub(double* X, shape & ShapeX, double* Y, shape & ShapeY, double* Z, shape & ShapeZ);
+	void MatrixAdd(double* X, shape& ShapeX, double* Y, shape& ShapeY, double* Z, shape& ShapeZ);
+	void MatrixSub(double* X, shape& ShapeX, double* Y, shape& ShapeY, double* Z, shape& ShapeZ);
 	void Copy(double* FormData, shape Shape, double* TargetData);
-	void MultiplyNumber(double* FormData,shape Shape, double* Target,double Number);
-	void CompressVertically(double* FormData,  shape FormShape,double* Target,shape TargetShape);/*M*N变为1*N*/
+	void MultiplyNumber(double* FormData, shape Shape, double* Target, double Number);
+	void CompressVertically(double* FormData, shape FormShape, double* Target, shape TargetShape);/*M*N变为1*N*/
 	void CompressHorizontally(double* FormData, shape FormShape, double* Target, shape TargetShape);/*M*N变为M*1*/
-	void MatrixSum(double* Data, shape Shape,double& Output);
+	void MatrixSum(double* Data, shape Shape, double& Output);
 	void MatrixSquare(double* FormData, shape Shape, double* Target);
 	void MatrixNegative(double* FormData, shape Shape, double* TargetData);
 	void MatrixExp(double* FormData, shape Shape, double* TargetData);
@@ -26,6 +26,7 @@ namespace MatrixOperator {
 	void Multiply3D(double* X, shape ShapeX, double* Y, shape ShapeY, double* Z, shape ShapeZ);
 	void MatrixGetLabel(double* FormData, shape FormShape, double* Target, shape TargetShape);
 	void Rotation180(double* Former, shape FormerShape, double* Target, shape TargetShape);
+	void MakeConvMatrix(double* FormData, shape FormerShape, double* TargetData, shape TargetShape, shape KernelShape, shape OutShape, size_t stride);
 }
 
 

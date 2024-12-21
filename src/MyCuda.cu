@@ -7,7 +7,7 @@
 #include"cmath"
 #include<vector>
 #include "Tool.h"
-#define NUMBERS_OF_THREADS 32
+#define NUMBERS_OF_THREADS 256
 typedef std::vector<size_t> shape;
 
 #if !defined (__CUDA_ARCH__) || __CUDA_ARCH__ >=600
@@ -168,7 +168,7 @@ __global__ void ConvolutionGPU(double* Input, double* Kernel, double* Output,
 		double value = 0.0;
 		size_t OutIDX = O1 * OS2 * OS3 * OS4 + thread;
 		size_t INIDX = O1 * IS2 * IS3 * IS4;
-		size_t InputX=O3*stride, InputY=O4*stride;
+		size_t InputX = O3 * stride, InputY = O4 * stride;
 		for (size_t KernelSizeInput = 0; KernelSizeInput < KS2; KernelSizeInput++) {
 			for (size_t KernelSizeWidth = 0; KernelSizeWidth < KS3; KernelSizeWidth++) {
 				for (size_t KernelSizeHeight = 0; KernelSizeHeight < KS4; KernelSizeHeight++) {
@@ -181,6 +181,25 @@ __global__ void ConvolutionGPU(double* Input, double* Kernel, double* Output,
 		Output[OutIDX] = value;
 	}
 }
+
+
+
+
+
+void ConvolutionMatrix(double* Input, shape InputShape, double* Kernel, 
+	shape KernelShape, double* Output, shape OutputShape, size_t stride) {
+	double* ProducedData;
+	shape  ProducedShape = InputShape;
+	ProducedShape[2] = OutputShape[2] * OutputShape[3];
+	ProducedShape[3] = KernelShape[2] * KernelShape[3];
+	cudaMallocManaged(&ProducedData, GetLength(ProducedShape) * sizeof(double));
+	MatrixOperator::MakeConvMatrix(Input,InputShape,ProducedData,ProducedShape,KernelShape,OutputShape,
+	stride);
+	//Kernel
+	//MatrixOperator::MakeConvMatrix
+	//cudaFree(ProducedData);
+}
+
 
 void MatrixOperator::Convolution(double* Input, shape InputShape, double* Kernel, shape KernelShape, double* Output, shape OutputShape, size_t stride)
 {
@@ -797,6 +816,56 @@ void MatrixOperator::Rotation180(double* Former, shape FormerShape, double* Targ
 		Rotation180CPU();
 	}
 }
+/*
+make 256 16 25 26  kernel(32 16 6 7)
+to  kernel  32 1  1 16*6*7        16*6*7  1  1 400*256
+*/
+
+__global__ void MakeConvMatrixGPU(double* FormData, double* TargetData,
+	size_t IS1, size_t IS2, size_t IS3, size_t IS4,
+	size_t TS1, size_t TS2, size_t TS3, size_t TS4,
+	size_t OS1,size_t OS2,size_t OS3,size_t OS4,size_t KernelHeight, size_t KernelWidth,
+	size_t Stride,size_t threads) {
+	size_t idx = threadIdx.x;
+	size_t row = blockIdx.x;
+	size_t stride = blockDim.x;
+	size_t IDX;
+
+	for (int i = idx; i < threads; i = i + stride) {
+		IDX = i + blockIdx.x * threads;
+
+	}
+}
+
+void MakeConvMatrixCPU() {};
+
+void MatrixOperator::MakeConvMatrix(double* FormData, shape FormerShape, double* TargetData, shape TargetShape,shape KernelShape,shape OutShape, size_t stride)
+{
+	cudaError_t status = cudaSetDevice(0);
+	if (status == cudaSuccess) {
+		size_t numbers_of_block = TargetShape[0];
+		size_t numbers_of_thread = NUMBERS_OF_THREADS;
+		MakeConvMatrixGPU<< <numbers_of_block, numbers_of_thread >> > (FormData, TargetData, 
+			FormerShape[0],FormerShape[1], FormerShape[2], FormerShape[3],
+			TargetShape[0],TargetShape[1],TargetShape[2],TargetShape[3],
+			OutShape[0],OutShape[1],OutShape[2],OutShape[3],
+			KernelShape[2],KernelShape[2],
+			stride,GetLength(TargetShape)/TargetShape[0]);
+		cudaDeviceSynchronize();
+	}
+	else {
+		MakeConvMatrixCPU();
+	}
+}
+
+
+
+
+
+
+
+
+
 
 void Compare(double* Label, double* Target, size_t size)
 {
@@ -1179,11 +1248,12 @@ void ConvOperator::ConvDLDK(double* Output, shape OutputShape, double* Input, sh
 	if (status == cudaSuccess) {
 		size_t numbers_of_block = KernelShape[0];
 		size_t numbers_of_thread = NUMBERS_OF_THREADS;
-		size_t threads = GetLength(KernelShape) / KernelShape[0];
+		size_t threads = GetLength(KernelShape) / KernelShape[0];/*
 		ConvDLDKGPU<<<numbers_of_block,numbers_of_thread>>>(Output, Input, KernelTemp, OutputShape[0], OutputShape[1], OutputShape[2], OutputShape[3],
 			InputShape[0], InputShape[1], InputShape[2], InputShape[3],
 			KernelShape[0], KernelShape[1], KernelShape[2], KernelShape[3], stride
-		);
+		);*/
+		MatrixOperator::Convolution(Input, InputShape, Output, OutputShape, KernelTemp, KernelShape, stride);;
 		cudaDeviceSynchronize();
 	}
 	else {
@@ -1383,12 +1453,12 @@ __global__ void DropOutForwardGPU(double* X, double* Y,double Rate,unsigned int 
 	size_t row = blockIdx.x;
 	size_t stride = blockDim.x;
 	size_t idx = threadIdx.x;
-	size_t IDX = 0;
+	size_t IDX = idx + row * threads;
 	curandState state;
+	curand_init(seed, IDX, 0, &state);
+	double random_value = curand_uniform(&state);
 	for (size_t i = idx; i < threads; i = i + stride) {
 		IDX = i + row * threads;
-		curand_init(seed, IDX, 0, &state);
-		double random_value = curand_uniform(&state);
 		Y[IDX] = random_value>Rate? X[IDX] : 0.0;
 	}
 }
@@ -1894,3 +1964,4 @@ void BatchNormOperator::GetDLDOffset(double* Gradient, shape InputShape, double*
 		DLDOffsetCpu();
 	}
 }
+
